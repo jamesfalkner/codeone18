@@ -1,0 +1,167 @@
+---
+- name: Deploy Infra Components for Cloud-Native Labs at Red Hat Summit 2018
+  hosts: localhost
+  gather_facts: true
+  run_once: true
+  vars:
+    lab_infra_project: lab-infra
+    user_openshift: developer
+    user_gogs_admin: gogs
+    user_gogs_user: developer
+    user_gogs_password: openshift
+    openshift_cli: oc
+    github_account: openshift-labs
+    github_ref: master
+    project_suffix: 
+    istio_version: 0.7.1
+    clean_init: false
+  tasks:
+    - include_role:
+        name: openshift_common_facts
+      tags: always
+
+    - set_fact:
+        gogs_hostname: gogs-{{ lab_infra_project }}.{{ apps_hostname_suffix }}
+      tags: always
+
+    - debug:
+        var: apps_hostname_suffix
+
+    - debug:
+        var: gogs_hostname
+
+    - name: clean up lab environment
+      shell: |
+        {{ openshift_cli }} delete project {{ lab_infra_project }} istio-system prod{{ project_suffix }}
+        {{ openshift_cli }} delete MutatingWebhookConfiguration istio-sidecar-injector
+      when: clean_init|bool
+      ignore_errors: true
+      tags: always
+
+    - name: wait for {{ lab_infra_project }} project to get removed
+      shell: "{{ openshift_cli }} get project {{ lab_infra_project }}"
+      ignore_errors: true
+      register: result
+      until: result|failed
+      retries: 30
+      delay: 60
+
+    - name: wait for istio-system project to get removed
+      shell: "{{ openshift_cli }} get project istio-system"
+      ignore_errors: true
+      register: result
+      until: result|failed
+      retries: 30
+      delay: 60
+
+    - name: wait for prod project to get removed
+      shell: "{{ openshift_cli }} get project prod{{ project_suffix }}"
+      ignore_errors: true
+      register: result
+      until: result|failed
+      retries: 30
+      delay: 60
+
+    # deploy istio and prod
+    - include_tasks: init_istio.yml
+      tags: istio
+
+    - name: create lab infra project
+      shell: "{{ openshift_cli }} new-project {{ lab_infra_project }}"
+      ignore_errors: true
+      tags: always
+
+    # deploy nexus
+    - import_role:
+        name: openshift_sonatype_nexus
+      vars:
+        project_name: "{{ lab_infra_project }}"
+        nexus_image_version: 3.10.0
+        nexus_max_memory: 6Gi
+      tags: nexus
+
+    # deploy gogs
+    - include_tasks: init_gogs.yml
+      tags: gogs
+
+    # deploy guides
+    - import_role:
+        name: openshift_workshopper
+      vars:
+        project_name: "{{ lab_infra_project }}"
+        workshopper_content_url_prefix: "https://raw.githubusercontent.com/openshift-labs/rhsummit18-cloudnative-guides/master"
+        workshopper_workshop_urls: "https://raw.githubusercontent.com/openshift-labs/rhsummit18-cloudnative-guides/master/_rhsummit18.yml"
+        workshopper_env_vars:
+          OPENSHIFT_MASTER_URL: "https://{{ apps_hostname_suffix | replace('apps', 'master') }}:8443"
+          APPS_HOSTNAME_SUFFIX: "{{ apps_hostname_suffix }}"
+          GIT_HOSTNAME: "gogs-{{ lab_infra_project }}.{{ apps_hostname_suffix }}"
+          ECLIPSE_CHE_URL: "http://che-{{ lab_infra_project }}.{{ apps_hostname_suffix }}"
+          NEXUS_EXTERNAL_URL: "http://nexus-{{ lab_infra_project }}.{{ apps_hostname_suffix }}"
+          GRAFANA_URL: "http://grafana-istio-system.{{ apps_hostname_suffix }}"
+          JAEGER_URL: "https://jaeger-query-istio-system.{{ apps_hostname_suffix }}"
+          PROMETHEUS_URL: "http://prometheus-istio-system.{{ apps_hostname_suffix }}"
+      tags: guides
+
+    # deploy eclipse che
+    - import_role:
+        name: openshift_eclipse_che
+      vars:
+        project_name: "{{ lab_infra_project }}"
+        che_version: "6.4.1"
+        #che_version: "latest"
+        route_suffix: "{{ apps_hostname_suffix }}"
+      tags: eclipse-che
+
+    - name: wait for eclipse che to be running
+      uri:
+        url: http://che-{{ lab_infra_project }}.{{ apps_hostname_suffix }}/api/
+        status_code: 200
+      register: result
+      until: result.status == 200
+      retries: "30"
+      delay: "60"
+      tags: eclipse-che
+
+    - name: create custom stack for jdk and openshift cli
+      uri:
+        url: http://che-{{ lab_infra_project }}.{{ apps_hostname_suffix }}/api/stack
+        method: POST
+        body: "{{ lookup('file','files/che-stack.json') }}"
+        body_format: json
+        status_code: 200,201
+      tags: eclipse-che
+
+    # validate cluster
+    - name: check openjdk image stream installed
+      shell: "{{ openshift_cli }} get is redhat-openjdk18-openshift -n openshift"
+      register: jdk_imagestream_result
+      ignore_errors: true
+      tags: validate
+
+    - name: display instructions to install openjdk image stream
+      debug:
+        msg:
+          - '### WARNING ###'
+          - 'OpenJDK image stream is not installed. Run the following as cluster admin:'
+          - '{{ openshift_cli }} create -n openshift -f https://raw.githubusercontent.com/openshift/openshift-ansible/release-3.9/roles/openshift_examples/files/examples/v3.9/xpaas-streams/jboss-image-streams.json'
+      when: jdk_imagestream_result|failed   
+      tags: validate     
+
+    # populate nexus
+    - name: populate nexus
+      shell: |
+        {{ openshift_cli }} create imagestream catalog -n prod{{ project_suffix }}
+        {{ openshift_cli }} adm policy add-role-to-user system:image-builder system:serviceaccount:{{ lab_infra_project }}:builder -n prod{{ project_suffix }}
+        {{ openshift_cli }} process -f files/catalog-build-template.yml --param=GIT_URI=http://{{ gogs_hostname }}/{{ user_gogs_user }}/catalog.git --param=PUSH_NAMESPACE=prod{{ project_suffix }} -n {{ lab_infra_project }} | {{ openshift_cli }} create -f - -n {{ lab_infra_project }}
+        {{ openshift_cli }} start-build catalog -n {{ lab_infra_project }}
+      ignore_errors: true
+      tags: populate-nexus
+    
+    # Populate inventory-dev template
+    - name: Install the inventory-dev template
+      include_tasks: init_template.yml
+      vars:
+        template_url: https://raw.githubusercontent.com/openshift-labs/rhsummit18-cloudnative-labs/master/openshift/inventory-dev-template.yml
+
+
+

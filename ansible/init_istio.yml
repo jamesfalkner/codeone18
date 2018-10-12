@@ -1,0 +1,91 @@
+---
+- name: check if istio deployed 
+  shell: "{{ openshift_cli }} get project istio-system"
+  register: istio_project_result
+  ignore_errors: true
+  changed_when: false
+
+- name: create local openshift config directory if doesn't exist
+  file:
+    path: /var/lib/origin/openshift.local.config
+    state: directory
+  when: istio_project_result|failed
+
+- name: create istio host inventory
+  get_url:
+    url: "https://raw.githubusercontent.com/openshift-istio/openshift-ansible/istio-3.9-{{ istio_version }}/istio/istio.inventory"
+    dest: "/var/lib/origin/openshift.local.config/istio.inventory"
+  when: istio_project_result|failed
+
+- name: create istio-system project
+  shell: |
+    {{ openshift_cli }} new-project istio-system
+    {{ openshift_cli }} create sa openshift-ansible -n istio-system
+    {{ openshift_cli }} adm policy add-scc-to-user privileged -z openshift-ansible -n istio-system
+    {{ openshift_cli }} label node master.example.com node-role.kubernetes.io/compute=true --overwrite
+  when: istio_project_result|failed
+
+- name: deploy istio installer job
+  # waiting for a fix for openshift-istio/openshift-ansible#4 bug 
+  # shell: "{{ openshift_cli }} create -f https://raw.githubusercontent.com/openshift-istio/openshift-ansible/istio-3.9-{{ istio_version }}/istio/istio_installer_job.yaml -n istio-system"
+  shell: "{{ openshift_cli }} create -f https://raw.githubusercontent.com/siamaksade/openshift-ansible/istio-3.9-{{ istio_version }}/istio/istio_installer_job.yaml -n istio-system"
+  when: istio_project_result|failed
+
+- name: wait for istio sidecar-injector to initialize
+  shell: "{{ openshift_cli }} get deployment istio-sidecar-injector -o jsonpath='{.status.availableReplicas}' -n istio-system"
+  register: sidecar_injector_replicas
+  until: sidecar_injector_replicas.stdout == "1"
+  retries: "30"
+  delay: "60"
+
+# create prod
+- name: create prod project
+  shell: |
+    {{ openshift_cli }} adm new-project prod{{ project_suffix }} --display-name='CoolStore PROD' --admin='{{ user_openshift }}'
+    {{ openshift_cli }} adm policy add-scc-to-user privileged -z default -n prod{{ project_suffix }}
+    {{ openshift_cli }} adm policy add-scc-to-user anyuid -z default prod{{ project_suffix }}
+    {{ openshift_cli }} adm policy add-role-to-user admin system:serviceaccount:prod{{ project_suffix }}:default -n prod{{ project_suffix }}
+
+- set_fact:
+    templates_base_url: https://raw.githubusercontent.com/{{ github_account }}/rhsummit18-cloudnative-labs/{{ github_ref }}/openshift
+
+- name: deploy web in prod
+  shell: |
+    {{ openshift_cli }} process -f {{ templates_base_url }}/web-template.yml \
+        --param=IMAGE_VERSION=prod \
+        -n prod{{ project_suffix }} | \
+                  {{ openshift_cli }} apply -f - -n prod{{ project_suffix }}
+
+- name: deploy inventory in prod
+  shell: |
+    {{ openshift_cli }} process -f {{ templates_base_url }}/inventory-template.yml \
+        --param=IMAGE_VERSION=prod \
+        -n prod{{ project_suffix }} | \
+                  {{ openshift_cli }} apply -f - -n prod{{ project_suffix }}
+
+- name: deploy catalog in prod
+  shell: |
+    {{ openshift_cli }} process -f {{ templates_base_url }}/catalog-template.yml \
+        --param=IMAGE_VERSION=prod \
+        -n prod{{ project_suffix }} | \
+                  {{ openshift_cli }} apply -f - -n prod{{ project_suffix }}
+
+- name: add jaeger tracing to the catalog in prod
+  shell: |
+    {{ openshift_cli }} env -n prod{{ project_suffix }} dc/catalog JAEGER_SERVICE_NAME=catalog \
+          JAEGER_ENDPOINT=https://jaeger-collector.istio-system.svc:14267/api/traces \
+          JAEGER_PROPAGATION=b3 \
+          JAEGER_SAMPLER_TYPE=const \
+          JAEGER_SAMPLER_PARAM=1
+
+- name: create istio ingress
+  shell: "{{ openshift_cli }} create -f files/ingress.yml -n prod{{ project_suffix }}"
+  ignore_errors: true
+
+- name: annotate deployment configs in prod for auto-inject
+  shell: |
+    {{ openshift_cli }} patch dc catalog            -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/inject":"true"}}}}}' -n prod{{ project_suffix }}
+    {{ openshift_cli }} patch dc catalog-postgresql -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/inject":"true"}}}}}' -n prod{{ project_suffix }}
+    {{ openshift_cli }} patch dc inventory          -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/inject":"true"}}}}}' -n prod{{ project_suffix }}
+    {{ openshift_cli }} patch dc web-ui             -p '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/inject":"true"}}}}}' -n prod{{ project_suffix }}
+  ignore_errors: true

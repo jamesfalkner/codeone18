@@ -1,0 +1,20 @@
+config:
+    renderer: markdown
+
+modules:
+  bootstrap-dev:
+    name: Setup Development Environment
+  create-catalog:
+    name: Create a Spring Boot Service
+  service-to-service:
+    name: Connect Catalog to Inventory
+  config-management:
+    name: Externalize Configuration
+  bootstrap-prod:
+    name: Automate Production Releases
+  tracing:
+    name: Distributed Tracing
+  fault-tolerance:
+    name: Fault Tolerance and Resilience
+  env-info:
+    name: "Appendix: Lab Info"
