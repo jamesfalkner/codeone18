@@ -1,6 +1,6 @@
 {
-  "name": "Java RH Summit",
-  "description": "Java JDK Stack on CentOS for Red Hat Summit 2018 Labs",
+  "name": "Code One 2018 - Red Hat",
+  "description": "Java JDK Stack on CentOS for Code One 2018 Labs",
   "scope": "general",
   "workspaceConfig": {
     "environments": {
@@ -120,5 +120,5 @@
     "CentOS",
     "Git"
   ],
-  "id": "java-centos-rhsummit18"
+  "id": "java-centos-codeone18"
 }
