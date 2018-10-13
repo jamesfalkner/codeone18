@@ -68,6 +68,7 @@
         project_name: "{{ lab_infra_project }}"
         nexus_image_version: 3.10.0
         nexus_max_memory: 6Gi
+        ephemeral: true
       tags: nexus
 
     # deploy gogs
