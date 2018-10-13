@@ -53,7 +53,7 @@
       delay: 60
 
     # deploy prod
-    - include_tasks: init_istio.yml
+    - include_tasks: init_prod.yml
       tags: istio
 
     - name: create lab infra project
