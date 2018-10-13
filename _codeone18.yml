@@ -2,11 +2,11 @@ id: "cloudnative"
 name: "Getting Started with Cloud-Native Apps"
 
 content:
-  url: https://raw.githubusercontent.com/openshift-labs/rhsummit18-cloudnative-guides/master
+  url: https://raw.githubusercontent.com/openshift-labs/codeone18/master
 
 vars:
-  OPENSHIFT_DOCS_BASE: "https://docs.openshift.com/container-platform/3.9"
-  OPENSHIFT_MASTER_URL: "https://master-GUID.generic.opentlc.com:8443"
+  OPENSHIFT_DOCS_BASE: "https://docs.openshift.com/container-platform/3.10"
+  OPENSHIFT_MASTER_URL: "https://master-GUID.generic.opentlc.com"
   OPENSHIFT_USERNAME: "developer"
   OPENSHIFT_PASSWORD: "openshift"
   OPENSHIFT_ADMIN_USERNAME: "admin"
