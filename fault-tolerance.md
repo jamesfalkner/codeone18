@@ -25,13 +25,13 @@ some cases there may be no implementation of a particular library for your chose
 
 ## Improving the Inventory Service
 
-In this scenario we'll explore how to use a new project called _Istio_ to solve many of the challenges of modern
+In this scenario we'll explore how to use OpenShift's _Service Mesh_ feature, based on a project called _Istio_ to solve many of the challenges of modern
 distributed applications. In particular, our coolstore application suffers from problems when the load is high - although
 you improved the production environment in the last step using Jaeger tracing and improving the performance of the
 `catalog` service, the `inventory` service still suffers
-from occasional scaling problems when the load is high. Let's use Istio and its fault tolerance and resiliency
+from occasional scaling problems when the load is high. Let's use OpenShift's Service Mesh and its fault tolerance and resiliency
 features to gracefully handle the high load. Notice that we aren't making **any changes to the application itself**,
-letting Istio handle failures at a lower, application infrastructure level.
+letting OpenShift handle failures at a lower, application infrastructure level.
 
 ### Chaos Engineering with the Inventory Service
 
@@ -125,7 +125,7 @@ Not good!
 
 Suppose that in a production system these errors were caused by too many concurrent
 requests to the same instance/pod. We don’t want multiple requests getting queued or
-making the instance/pod even slower. So we’ll add an [istio circuit breaker](https://istio.io/docs/reference/config/istio.routing.v1alpha1.html#CircuitBreaker.SimpleCircuitBreakerPolicy)
+making the instance/pod even slower. So we’ll add an [istio circuit breaker](https://istio.io/docs/tasks/traffic-management/circuit-breaking/)
 that will _open_ whenever we have more than 1 request being handled by any instance/pod. When the
 circuit is broken for a given pod, we want to _eject_ the pod out of the load balancing pool.
 
@@ -147,48 +147,46 @@ oc login -u {{OPENSHIFT_ADMIN_USERNAME }} -p {{OPENSHIFT_ADMIN_PASSWORD}}
 oc project prod{{PROJECT_SUFFIX}}
 ~~~
 
-Istio circuit breakers operate by setting policies on _routes_ to specific backends. For this to work,
-we need to first create an Istio _RouteRule_ that sends 100% of the traffic to our `inventory` backend:
+Istio circuit breakers operate by _DestinationRules_ on _routes_ to specific backends. _DestinationRules_ define policies that apply to traffic intended for a service after routing has occurred. So for this to work,
+we first need to create an Istio _VirtualService_ that sends 100% of the traffic to our `inventory:v1` backend:
 
 ~~~sh
 cat <<EOF | oc create -f -
-apiVersion: config.istio.io/v1alpha2
-kind: RouteRule
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
 metadata:
-  name: inventory-v1-route
+  name: inventory-v1
 spec:
-  destination:
-    name: inventory
-  precedence: 1
-  route:
-  - labels:
-      version: v1
-    weight: 100
+  hosts:
+  - inventory
+  http:
+  - route:
+    - destination:
+        host: inventory
+        subset: v1
+      weight: 100
 EOF
 ~~~
 
-Now, add the circuit breaker by creating an Istio [Destination Policy](https://istio.io/docs/concepts/traffic-management/rules-configuration.html#destination-policies) which
+Now, add the circuit breaker by creating an Istio [Destination Rule](https://istio.io/docs/reference/config/istio.networking.v1alpha3/#DestinationRule) which
 is used to create circuit breakers:
 
 ~~~sh
 cat <<EOF | oc create -f -
-apiVersion: config.istio.io/v1alpha2
-kind: DestinationPolicy
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
 metadata:
   name: inventory-poolejector
 spec:
-  destination:
-    name: inventory
-    labels:
-      version: v1
-  loadBalancing:
-    name: RANDOM
-  circuitBreaker:
-    simpleCb:
-      httpConsecutiveErrors: 1
-      sleepWindow: 15s
-      httpDetectionInterval: 5s
-      httpMaxEjectionPercent: 100
+  host: inventory
+  trafficPolicy:
+    loadBalancer:
+      simple: ROUND_ROBIN
+    outlierDetection:
+      consecutiveErrors: 1
+      interval: 5s
+      baseEjectionTime: 15s
+      maxEjectionPercent: 100
 EOF
 ~~~
 
@@ -271,36 +269,34 @@ improve this. If we have enough instances and/or versions of a specific service
 running into our system, we can combine multiple Istio capabilities to achieve
 the ultimate backend resilience:
 
-* Circuit Breaker to avoid multiple concurrent requests to an instance
-* Pool Ejection to remove failing instances from the pool of responding instances
-* Retries to forward the request to another instance just in case we get an open circuit breaker and/or pool ejection;
+* **Circuit Breaker** to avoid multiple concurrent requests to an instance
+* **Pool Ejection** to remove failing instances from the pool of responding instances
+* **Retries** to forward the request to another instance just in case we get an open circuit breaker and/or pool ejection;
 
 By simply adding a retry configuration to Istio, we’ll be able to get
 rid completely of our `503`s requests and `inventory = -1` failures. This means that whenever we receive a failed
 request from an ejected instance, Istio will forward the request to another supposedly
 healthy instance.
 
-Put the retry rule into effect by replacing the default route created earlier with an updated route which contains
-a retry policy:
+Put the retry into effect by replacing the default _VirtualService_ created earlier with an updated _VirtualService_ which contains a retry policy:
 
 ~~~sh
 cat <<EOF | oc replace -f -
-apiVersion: config.istio.io/v1alpha2
-kind: RouteRule
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
 metadata:
-  name: inventory-v1-route
+  name: inventory-v1
 spec:
-  destination:
-    name: inventory
-  precedence: 1
-  route:
-  - labels:
-      version: v1
-    weight: 100
-  httpReqRetries:
-    simpleRetry:
-      perTryTimeout: 1s
+  hosts:
+    - inventory
+  http:
+  - route:
+    - destination:
+        host: inventory
+        subset: v1
+    retries:
       attempts: 3
+      perTryTimeout: 1s
 EOF
 ~~~
 
