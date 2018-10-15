@@ -19,6 +19,14 @@
         name: openshift_common_facts
       tags: always
 
+    - name: get openshift master public url
+      shell: grep '^masterPublicURL' /etc/origin/master/master-config.yaml | awk '{print $2}'
+      register: openshift_master_public_result
+
+    - name: set openshift master public url fact
+      set_fact:
+        openshift_master_public_url: "{{ openshift_master_public_result.stdout }}"
+
     - set_fact:
         gogs_hostname: gogs-{{ lab_infra_project }}.{{ apps_hostname_suffix }}
       tags: always
@@ -82,7 +90,7 @@
         workshopper_content_url_prefix: "https://raw.githubusercontent.com/jamesfalkner/codeone18/master"
         workshopper_workshop_urls: "https://raw.githubusercontent.com/jamesfalkner/codeone18/master/_codeone18.yml"
         workshopper_env_vars:
-          OPENSHIFT_MASTER_URL: "https://{{ apps_hostname_suffix | replace('apps', 'master') }}"
+          OPENSHIFT_MASTER_URL: "{{ openshift_master_public_url }}"
           APPS_HOSTNAME_SUFFIX: "{{ apps_hostname_suffix }}"
           GIT_HOSTNAME: "gogs-{{ lab_infra_project }}.{{ apps_hostname_suffix }}"
           ECLIPSE_CHE_URL: "http://che-{{ lab_infra_project }}.{{ apps_hostname_suffix }}"
@@ -97,7 +105,7 @@
         name: openshift_eclipse_che
       vars:
         project_name: "{{ lab_infra_project }}"
-        che_version: "6.12.1"
+        che_version: "6.9.0"
         #che_version: "latest"
         route_suffix: "{{ apps_hostname_suffix }}"
       tags: eclipse-che
