@@ -34,7 +34,7 @@ and specify the following query:
 |Property|Value|
 |--------|--------|
 |Service |catalog |
-|Operation|default-route|
+|Operation|all|
 |Min Duration|2s|
 
 Click on **Find Traces** and you should see some result for traces to service catalog where the call took longer than 2s.
@@ -187,7 +187,7 @@ You can also verify that by opening the
 |Property|Value|
 |--------|--------|
 |Service |catalog |
-|Operation|default-route|
+|Operation|all|
 
 Click on **Find Traces** and you should see some result for traces to service catalog where the calls take ~400-500ms
 

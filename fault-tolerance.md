@@ -68,7 +68,7 @@ to inject this fault.
 Run the following in the Eclipse Che **Terminal** window:
 
 ~~~sh
-oc rsh -c inventory $(oc get pods -l app=inventory -o name | head -1) curl http://localhost:8080/misbehave
+oc rsh -c inventory $(oc get pods -l app=inventory -o name | head -1) curl http://127.0.0.1:8080/misbehave
 ~~~
 
 At this point, you'll still have two `inventory` pods however only one of them works. We should see this when
@@ -163,7 +163,7 @@ spec:
   - route:
     - destination:
         host: inventory
-        subset: v1
+        subset: version-v1
       weight: 100
 EOF
 ~~~
@@ -176,17 +176,25 @@ cat <<EOF | oc create -f -
 apiVersion: networking.istio.io/v1alpha3
 kind: DestinationRule
 metadata:
+  creationTimestamp: null
   name: inventory-poolejector
 spec:
   host: inventory
-  trafficPolicy:
-    loadBalancer:
-      simple: ROUND_ROBIN
-    outlierDetection:
-      consecutiveErrors: 1
-      interval: 5s
-      baseEjectionTime: 15s
-      maxEjectionPercent: 100
+  subsets:
+  - labels:
+      version: v1
+    name: version-v1
+    trafficPolicy:
+      connectionPool:
+        http: {}
+        tcp: {}
+      loadBalancer:
+        simple: RANDOM
+      outlierDetection:
+        baseEjectionTime: 15.000s
+        consecutiveErrors: 1
+        interval: 5.000s
+        maxEjectionPercent: 100
 EOF
 ~~~
 
@@ -242,20 +250,20 @@ statistics for the `catalog` pod:
 
 ~~~sh
 
-oc rsh -c catalog $(oc get pods -l app=catalog -o name | head -1) curl localhost:15000/stats|grep outlier | sed 's/^.*outlier_detection.//g'
+oc rsh -c catalog $(oc get pods -l app=catalog -o name | head -1) curl 127.0.0.1:15000/stats|grep outlier | sed 's/^.*outlier_detection.//g'
 
 ejections_active: 1
-ejections_consecutive_5xx: 14
-ejections_detected_consecutive_5xx: 14
-ejections_detected_consecutive_gateway_failure: 0
+ejections_consecutive_5xx: 0
+ejections_detected_consecutive_5xx: 0
+ejections_detected_consecutive_gateway_failure: 2
 ejections_detected_success_rate: 0
-ejections_enforced_consecutive_5xx: 14
-ejections_enforced_consecutive_gateway_failure: 0
+ejections_enforced_consecutive_5xx: 0
+ejections_enforced_consecutive_gateway_failure: 2
 ejections_enforced_success_rate: 0
-ejections_enforced_total: 14
+ejections_enforced_total: 2
 ejections_overflow: 0
 ejections_success_rate: 0
-ejections_total: 14
+ejections_total: 0
 ~~~
 
 You can see that Envoy is reporting `ejections_active: 1` (and if you run the test enough, the value
@@ -278,7 +286,7 @@ rid completely of our `503`s requests and `inventory = -1` failures. This means 
 request from an ejected instance, Istio will forward the request to another supposedly
 healthy instance.
 
-Put the retry into effect by replacing the default _VirtualService_ created earlier with an updated _VirtualService_ which contains a retry policy:
+Put the retry into effect by replacing the _VirtualService_ created earlier with an updated _VirtualService_ which contains a retry policy:
 
 ~~~sh
 cat <<EOF | oc replace -f -
@@ -288,15 +296,16 @@ metadata:
   name: inventory-v1
 spec:
   hosts:
-    - inventory
+  - inventory
   http:
-  - route:
+  - retries:
+      attempts: 3
+      perTryTimeout: 4.000s
+    route:
     - destination:
         host: inventory
-        subset: v1
-    retries:
-      attempts: 3
-      perTryTimeout: 1s
+        subset: version-v1
+      weight: 100
 EOF
 ~~~
 
@@ -316,7 +325,7 @@ more resiliant in the face of overwhelming load and misbehaving infrastructure!
 You can verify the retry is happening by once again looking at the Envoy statistics:
 
 ~~~sh
-oc rsh -c catalog $(oc get pods -l app=catalog -o name | head -1) curl localhost:15000/stats|grep inventory.prod|grep upstream_rq_retry
+oc rsh -c catalog $(oc get pods -l app=catalog -o name | head -1) curl 127.0.0.1:15000/stats|grep inventory.prod|grep upstream_rq_retry
 
 cluster.out.inventory.prod.svc.cluster.local|http|version=v1.upstream_rq_retry: 1
 cluster.out.inventory.prod.svc.cluster.local|http|version=v1.upstream_rq_retry_overflow: 0
