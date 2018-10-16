@@ -17,7 +17,7 @@ A stack is a template of workspace configuration. For example, it includes the p
 in your workspace. Stacks make it possible to recreate identical workspaces with all the tools and needed configuration
 on-demand. 
 
-For this lab, click on the **Java RH Summit** stack and then on the **Create** button. 
+For this lab, click on the **Code One 2018 - Red Hat** stack and then on the **Create** button. 
 
 ![Eclipse Che Workspace]({% image_path bootstrap-che-create-workspace.png %}){:width="900px"}
 
@@ -311,7 +311,7 @@ Click on **Create**.
 An OpenShift pipeline is created for you which uses the `Jenkinsfile` from the catalog git repository. From 
 the left-side menu go to to **Builds** > **Pipelines**. Click on **Start Pipeline** to try out the 
 build pipeline.
-
+|**NOTE**: It takes 2-3 minutes for Jenkins itself to deploy, so when clicking **Start Pipeline** it make take some time for the pipeline to begin, depending on if Jenkins has finished deploying, but it will eventually work.
 
 ![Build Pipeline]({% image_path bootstrap-build-pipeline.png %}){:width="900px"}
 
