@@ -36,7 +36,7 @@ The database table would look like this:
 
 Right-click on the `model` package in the project tree and select _New_ -> _Java Class_ and name it `Product`. 
 
-![creating new class]({% image_path che-create-model-new.png %}){:width="340px"}
+![creating new class]({% image_path che-create-model-new.png %}){:width="600px"}
 
 ![specifying name]({% image_path che-create-model.png %}){:width="340px"}
 
