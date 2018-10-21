@@ -113,7 +113,7 @@ certified OpenJDK container image that comes with the OpenShift platform.
 Run the following in Eclipse Che **Terminal** in order to build the Catalog container image using S2I:
 
 ~~~sh
-oc new-build redhat-openjdk18-openshift:1.2~http://{{GIT_HOSTNAME}}/{{GIT_USERNAME}}/catalog.git \
+oc new-build java:8~http://{{GIT_HOSTNAME}}/{{GIT_USERNAME}}/catalog.git \
     -e MAVEN_MIRROR_URL=http://nexus.lab-infra.svc:8081/repository/maven-all-public
 ~~~
 
@@ -121,8 +121,8 @@ The `[BASE IMAGE]~[SOURCE REPO]` expression in the above command instructs OpenS
 application source code from the specified source code repository `[SOURCE_REPO]`, build it using the build tool that
 is suitable for the application (nothing says Maven louder than a `pom.xml`!), and then build the container 
 image for the application by layering the application binaries onto the `[BASE IMAGE]`. Since the Catalog service
-is based on Spring Boot, we use the certified OpenJDK image that is available in OpenShift 
-a.k.a. `redhat-openjdk18-openshift:1.2`.
+is based on Spring Boot, we use the certified OpenJDK 8 image that is available in OpenShift 
+a.k.a. `java:8`.
 
 We also have specified the environment variable `MAVEN_MIRROR_URL` supported by the OpenJDK image which 
 tells the builder to use that specific Maven repository manager for pulling all the artifacts. You can read 
@@ -188,7 +188,7 @@ source code changes are tracked.
 
 In your workspace in the root of catalog directory, right-click and then click on 
 **New** > **File** and name it `Jenkinsfile`. Paste the following pipeline definition 
-into the `Jenkinsfile`
+into the `Jenkinsfile`. **Note the name of this file is case-sensitive and must be named `Jenkinsfile` (upper-case _J_, lower-case _f_)**:
 
 ~~~shell
 pipeline {

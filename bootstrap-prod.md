@@ -23,7 +23,7 @@ name **CoolStore PROD**. Browse the production project in the OpenShift Web Cons
 
 In Eclipse Che, right-click in the in the root of catalog directory and then click on 
 **New** > **File** and name it `Jenkinsfile.release`. Paste the following pipeline definition 
-into `Jenkinsfile.release`:
+into `Jenkinsfile.release`. **Note the name of this file is case-sensitive and must be named `Jenkinsfile.release` (upper-case _J_, lower-case _f_, lower-case _r_)**:
 
 ~~~shell
 def releaseTag

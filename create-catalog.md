@@ -34,8 +34,13 @@ The database table would look like this:
 |--------|-------------|-----------------------------------------------------------------------------------------|-------|
 | 444435 | Oculus Rift | The world of gaming has also undergone some very unique and compelling tech advances... | 106.0 |
 
+Right-click on the `model` package in the project tree and select _New_ -> _Java Class_ and name it `Product`. 
 
-Create a Java class named `Product` in `src/main/java` and the `com.redhat.coolstore.model` package with the following code:
+![creating new class]({% image_path che-create-model-new.png %}){:width="340px"}
+
+![specifying name]({% image_path che-create-model.png %}){:width="340px"}
+
+This causes a new file called `Product.java` to be created in the `src/main/java/com/redhat/coolstore/model` directory. Replace the contents of the new file with the below code:
 
 ~~~java
 package com.redhat.coolstore.model;
@@ -52,17 +57,42 @@ public class Product {
     @Column(length = 2500)
     private String description;
     private double price;
+
+    public String getItemId() {
+        return itemId;
+    }
+
+    public void setItemId(String itemId) {
+        this.itemId = itemId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public double getPrice() {
+        return price;
+    }
+
+    public void setPrice(double price) {
+        this.price = price;
+    }
 }
 ~~~
 
-The `@Entity` annotation marks the class as a data model for Spring Data. You can generate the getter and
-setter methods using Eclipse Che. Click on a spot where you want the 
-methods to be generated, write `get` or `set` into the editor and then press Ctrl+Space to get the list of proposals for
-the code to be generated. Click on `getName()` for example to generate the `getName()` method. Repeat for 
-all the getters and setters for each of the above fields.
-
-|**STEP BY STEP:** Creating the Domain Object Model
-|![Create a model]({% image_path che-create-model.gif %}){:width="900px"}
+The `@Entity` annotation marks the class as a data model for Spring Data. We have also supplied getters and setters for each field.
 
 ### Adding Seed Data
 

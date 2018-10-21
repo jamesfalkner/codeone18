@@ -26,7 +26,7 @@ Now that we know what the inventory service looks like and how to call it we can
 
 ### Creating the Inventory Model
 
-We need an inventory model that matches the return format from the inventory service so we start by creating a new Java class under `src/main/java/com/redhat/coolstore/model` called `Inventory` that looks like this:
+We need an inventory model that matches the return format from the inventory service. Right-click on the `model` package and select _New_ --> _Java Class_ called `Inventory` that has this content:
 
 ~~~java
 package com.redhat.coolstore.model;
@@ -34,24 +34,42 @@ package com.redhat.coolstore.model;
 public class Inventory {
     private String itemId;
     private int quantity;
+
+    public void setItemId(String itemId) {
+        this.itemId = itemId;
+    }
+
+    public void setQuantity(int quantity) {
+        this.quantity = quantity;
+    }
+
+    public int getQuantity() {
+        return quantity;
+    }
+
+    public String getItemId() {
+        return itemId;
+    }
 }
 ~~~
 
-Generate the getter and setter methods by writing `get` or `set` and then using `Ctrl+Space`, as you did before, for each of the above fields.
-
-We also need to extend the `Product` model to contain the quantity information. Add a field to the
-`Product` class and generate the getter and setter methods again:
+We also need to extend the `Product` model to contain the quantity information. Navigate to the `Product` class and add a field called `quantity` along with getter and setter methods:
 
 ~~~java
-    @Transient
+    @javax.persistence.Transient
     private int quantity;
+
+    public int getQuantity() {
+        return quantity;
+    }
+
+    public void setQuantity(int quantity) {
+        this.quantity = quantity;
+    }
 ~~~
 
 Note the `javax.persistence.Transient` annotation which shows that this field should not be persisted into the product table
 since it's owned by something else (the inventory table!).
-
-|**STEP BY STEP:** Creating the inventory model
-|![New file]({% image_path service-to-service-model.gif %}){:width="900px"}
 
 ### Creating the Inventory REST Client
 
@@ -79,16 +97,14 @@ package com.redhat.coolstore.client;
 @FeignClient(name="inventory")
 public interface InventoryClient {
 
+    @RequestMapping(method = RequestMethod.GET, value = "/services/inventory/{itemId}", consumes = {MediaType.APPLICATION_JSON_VALUE})
+    Inventory getInventoryStatus(@PathVariable("itemId") String itemId);
+
 }
 ~~~
 
-We also have to define a method that returns the inventory object for the given item id and also give Feign 
-some meta data about the request to the inventory service using annotations. Add this to the `InventoryClient` interface:
-
-~~~java
-    @RequestMapping(method = RequestMethod.GET, value = "/services/inventory/{itemId}", consumes = {MediaType.APPLICATION_JSON_VALUE})
-    Inventory getInventoryStatus(@PathVariable("itemId") String itemId);
-~~~
+We hava also defined the `getInventoryStatus` method in this interface that should return the inventory object for the given itemId and also give Feign 
+some metadata about the request to the inventory service using the annotations. 
 
 Just to make sure you have the correct imports, here is how they should look like after 
 running **Assistant** > **Organize Imports**.
@@ -105,8 +121,7 @@ import com.redhat.coolstore.model.Inventory;
 
 Finally, we also have to tell Spring to look for the `@FeignClient` annotation and automatically create an implementation for it. That is done by enabling Feign on the Spring application.
 
-Open `com/redhat/coolstore/CatalogServiceApplication.java` and add the class-level `@EnableFeignClients` annotation 
-to it.
+Open `com/redhat/coolstore/CatalogServiceApplication.java` and add the class-level `@EnableFeignClients` annotation to it (right above the `@SpringBootApplication` annotation) and Organize Imports to import everything correctly.
 
 |**STEP BY STEP:** Creating the client
 |![New file]({% image_path service-to-service-client.gif %}){:width="900px"}
@@ -213,7 +228,7 @@ a file called `application-default.properties` in `src/test/resources` with the 
 ribbon.listOfServers=mock-service.example.com:8080
 ~~~
 
-|**IMPORTANT:** Notice that this file is located in `src/test/resources` and not `src/main/resources` and is named `application-default.properties` (double-check the filename - it must be `application-default.properties!)
+|**IMPORTANT:** Notice that this file is located in `src/test/resources` and not `src/main/resources` and is named `application-default.properties` (double-check the filename - it **must** be `application-default.properties`!)
 
 We are now finally ready to run the test. 
 
