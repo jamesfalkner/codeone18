@@ -52,6 +52,9 @@ pipeline {
         }
       }
     }
+    
+    // Add new stages here
+
   }
 }
 ~~~
@@ -80,7 +83,7 @@ environments (in this case, _dev > prod_).
 
 Add the `Release Image` stage right after `Release Code` in the `Jenkinsfile.release`
 
-|**CAUTION:** Be sure to place the below code at the correct indentation level, so that the individual `stage{...}` elements are at the same curly-brace level! In particular, be aware of the presence of `stages{...}` as the containing element for all of the `stage{...}` elements.
+|**CAUTION:** Be sure to place the below code at the correct indentation level below the _Add new stages here_ comment, so that the individual `stage{...}` elements are at the same curly-brace level! In particular, be aware of the presence of `stages{...}` as the containing element for all of the `stage{...}` elements.
 
 ~~~shell
     stage('Release Image') {

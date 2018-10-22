@@ -1,6 +1,6 @@
 ## Distributed Tracing
 
-Before we start this scenario issue the following command
+Before we start this scenario issue the following commands:
 
 ~~~shell
 oc env -n prod{{PROJECT_SUFFIX}} dc/inventory SERVICE_DELAY=400 --overwrite 
@@ -77,6 +77,8 @@ First, open the `com.redhat.coolstore.client.InventoryClient` and add a method d
     @RequestMapping(method = RequestMethod.GET, value = "/services/inventory/all", consumes = {MediaType.APPLICATION_JSON_VALUE})
     List<Inventory> getInventoryStatusForAll();
 ~~~
+
+Don't forget to _Assistant_ -> _Organize Imports_ so that it adds an `import java.util.List;` to your imports!
 
 Then, open the `com.redhat.coolstore.service.ProductEndpoint` and replace the `readAll()` method with the following implementation:
 

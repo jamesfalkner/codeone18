@@ -43,7 +43,7 @@ oc project prod{{PROJECT_SUFFIX}}
 oc scale dc/inventory --replicas=2
 ~~~
 
-Wait for both pods to be in the `2/2 Ready` state:
+Wait for both pods to be in the `2/2 Running` state:
 
 ~~~shell
 oc get pods -l app=inventory
@@ -53,8 +53,8 @@ You will see something like the following which shows 2 inventory pods are runni
 
 ~~~shell
 NAME                READY     STATUS    RESTARTS   AGE
-inventory-2-fw9d9   2/2       Running   0          10m
-inventory-2-p9c7h   2/2       Running   0          13s
+inventory-4-s7mv7   2/2       Running   0          36s
+inventory-4-v5rcs   2/2       Running   0          19s
 ~~~
 
 You can see that also in the [OpenShift Web Console]({{OPENSHIFT_MASTER_URL}}/console/project/prod{{PROJECT_SUFFIX}}){:target="_blank"} in the **CoolStore PROD** project.

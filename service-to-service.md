@@ -571,6 +571,8 @@ After pushing, the pipeline will automatically start (based on the hook we confi
 |**STEP BY STEP:** Commit and push the changes
 |![New file]({% image_path service-to-service-pipeline.gif %}){:width="640px"}
 
+When all is done, try out your new [Catalog Service With Inventory](http://catalog-dev{{ PROJECT_SUFFIX }}.{{ APPS_HOSTNAME_SUFFIX }}){:target="_blank"}!
+
 ### Summary
 
 Congratulations, you have now successfully integrated the Catalog application with the inventory service using the Spring Cloud Feign Client.
