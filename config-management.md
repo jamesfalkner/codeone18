@@ -202,6 +202,13 @@ The _Lytro Camera_ product should now cost `100`:
 
 |**CAUTION:** The SQL UPDATE command is very powerful and can wreak havoc on production databases and unsuspecting applications not designed to deal with changing data at this level. There may also be caches in place preventing low level updates from having any effect, so use sparingly and with caution!
 
+You can also verify that our catalog fetches the new price:
+
+~~~shell
+curl -w '\n' http://catalog-dev{{PROJECT_SUFFIX}}.{{APPS_HOSTNAME_SUFFIX}}/services/product/444436
+{"itemId":"444436","name":"Lytro Camera","description":"...","price":100.0}
+~~~
+
 ### Congratulations!
 
 You've now got a quick way to alter service configuration without redeploying! As the application moves

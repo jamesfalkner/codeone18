@@ -99,6 +99,14 @@ Create a project for the Dev environment:
 oc new-project dev{{PROJECT_SUFFIX}} --display-name="Catalog DEV"
 ~~~
 
+While still in the Eclipse Che **Terminal** run the following to deploy Jenkins to the project using the certified Jenkins image that comes with OpenShift. We will use this later on.
+
+~~~shell
+oc new-app jenkins-persistent
+~~~
+
+![Deploy Jenkins]({% image_path bootstrap-jenkins-deploy.png %}){:width="900px"}
+
 Now that the project is created, you can navigate to it using the OpenShift Web Console by clicking on the name on the right
 side of the web console (you may need to click **View All** if the **Catalog DEV** project isn't listed). You can also directly
 access it [here]({{ OPENSHIFT_MASTER_URL }}/console/project/dev{{PROJECT_SUFFIX}}){:target="_blank"}. It's currently empty, but that's about to change.
@@ -132,6 +140,8 @@ In the [`dev` project console]({{ OPENSHIFT_MASTER_URL }}/console/project/dev{{P
 clicking on the build.
 
 ![Catalog Build]({% image_path bootstrap-catalog-build.png %}){:width="900px"}
+
+|**NOTE:** If you see: ![Metrics Warning]({% image_path bootstrap-dev-metrics-warning.png %}){:width="400"} you can safely ignore it and click _Don't Show Me Again_. We are not using metrics in this lab.
 
 [OpenShift Templates]({{OPENSHIFT_DOCS_BASE}}/dev_guide/templates.html){:target="_blank"} allow composing applications
 from multiple containers and deploying them at once. The Catalog service needs a PostgreSQL database and
@@ -257,15 +267,6 @@ Make sure `Jenkinsfile` is checked. Enter a commit message to describe your chan
 **Push commit changes to...** to push the commit directly to the git server and then click on **Commit**.
 
 ![Eclipse Che - Git Commit]({% image_path bootstrap-che-git-commit.png %}){:width="600px"}
-
-Go to the clipse Che **Terminal** and run the following to deploy a Jenkins container using the certified Jenkins image that
-comes with OpenShift.
-
-~~~shell
-oc new-app jenkins-persistent
-~~~
-
-![Deploy Jenkins]({% image_path bootstrap-jenkins-deploy.png %}){:width="900px"}
 
 OpenShift has built-in support for built and deployment automation through 
 [the automatic deployment triggers]({{OPENSHIFT_DOCS_BASE}}/dev_guide/deployments/basic_deployment_operations.html#triggers){:target="_blank"}.

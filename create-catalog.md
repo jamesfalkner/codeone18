@@ -164,9 +164,7 @@ You will get an error notice near the annotation which tells you the annotation 
 your Java class. Fortunately Eclipse Che can fix that for you automatically (you *did* mark the project as a Maven project when you
 first imported it into Eclipse Che, right?)
 
-Right-click on the annotation (or the error) and
-then choose **Quick Fix**. Eclipse Che will show you a list of quick fixes, click on **Import 'RunWith'...** to import it to your 
-Java class. 
+From the top menu, select _Assistent_ -> _Organize Imports_. Eclipse Che will find the needed classes and add the appropriate `import` statements for you. You will do this several times whenever you copy/paste code.
 
 The above annotations set up the correct Spring context and make required objects available for injection 
 and use in the unit tests.
