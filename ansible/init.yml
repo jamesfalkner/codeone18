@@ -161,5 +161,12 @@
       vars:
         template_url: https://raw.githubusercontent.com/{{ github_account }}/rhsummit18-cloudnative-labs/master/openshift/inventory-dev-template.yml
 
+    # Pre-pull new jenkins agent registry.access.redhat.com/openshift3/jenkins-agent-maven-35-rhel7:v3.10
+    - name: Pre-pull jenkins agent for 3.10
+      shell: |
+        ssh node01.example.com docker pull registry.access.redhat.com/openshift3/jenkins-agent-maven-35-rhel7:v3.10
+        ssh node02.example.com docker pull registry.access.redhat.com/openshift3/jenkins-agent-maven-35-rhel7:v3.10
+        ssh node03.example.com docker pull registry.access.redhat.com/openshift3/jenkins-agent-maven-35-rhel7:v3.10
+      ignore_errors: true
 
 
