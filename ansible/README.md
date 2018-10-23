@@ -21,13 +21,23 @@ Playbook Variables
 
 How To Run
 ------------
+You'll need an OpenShift 3.10 or later cluster already installed (you can use [Minishift](https://github.com/MiniShift/minishift) and give it at least 8gb memory).
 
-Log in to OpenShift with a `cluster-admin` user and then run:
+You'll also need to [install Ansible](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html). 
+
+Next, you'll need to log in to OpenShift with a user that has admin privileges and [install istio using the OpenShift operator for Istio](https://access.redhat.com/documentation/en-us/openshift_container_platform/3.10/html/service_mesh_install/)
+
+Once that's confirmed to be installed and running, you can install the lab:
 
 ```
 ansible-galaxy install -r requirements.yml
 ansible-playbook init.yml 
 ```
+Once it's done installing, browse to the installed guides using the URL from this command
+
+~~~sh
+echo http://$(oc get route guides -o jsonpath='{.spec.host}{"\n"}' -n lab-infra)
+~~~
 
 Troubleshooting 
 ---------------
